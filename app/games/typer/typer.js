@@ -6,6 +6,7 @@
  * Changes: chapter questions, falling words in left/right lanes, IME input,
  * mobile viewport, three lives, score/combo, review card, per-question
  * backgrounds, local animation lifecycle and Amgi result integration.
+ * 2026-11-17: picture questions (img) and essay questions (blanks in order).
  */
 
 export const normalizeAnswer = text => text.normalize('NFC').trim().replace(/\s+/g, ' ');
@@ -34,7 +35,7 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
       <div class="typer-score" aria-live="off"><small>점수</small><strong id="typer-score">0</strong><span class="typer-combo" id="typer-combo"></span></div>
       <div class="typer-actions"><button id="typer-pause" class="typer-icon" aria-label="일시정지"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button><button id="typer-end" class="typer-icon" aria-label="마치기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     </div>
-    <div class="typer-qcard"><small id="typer-chapter"></small><h1 id="typer-question"></h1></div>
+    <div class="typer-qcard"><small id="typer-chapter"></small><div class="typer-qimg" id="typer-img"></div><h1 id="typer-question"></h1><p class="typer-model" id="typer-model" hidden></p></div>
     <div class="typer-field">
       <canvas id="typer-canvas" aria-hidden="true"></canvas>
       <div class="typer-words" id="typer-words" aria-label="떨어지는 보기"></div>
@@ -65,6 +66,8 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
   let correctCount = 0;
   let lives = 3;
   let index = 0;
+  let blank = 0; // essay: current blank
+  let advanceBlank = false;
   let animation;
   let previous = 0;
   let phase = 'ready';
@@ -79,6 +82,14 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
   const center = { x: 0, y: 0, radius: 6, color: '#141414' };
   const listeners = [];
   function on (target, event, handler) { target.addEventListener(event, handler); listeners.push(() => target.removeEventListener(event, handler)); }
+  const cur = () => questions[index].type === 'essay' ? questions[index].blanks[blank] : questions[index];
+  function renderModel () {
+    const item = questions[index], model = root.querySelector('#typer-model');
+    model.hidden = item.type !== 'essay';
+    if (model.hidden) return;
+    model.innerHTML = esc(item.model).replace(/\[\[(\d+)\]\]/g, (_, n) => n - 1 < blank ? `<b class="filled">${esc(item.blanks[n - 1].a)}</b>` : `<b class="${n - 1 === blank ? 'now' : 'empty'}">( ${n} )</b>`);
+    model.querySelector('.now')?.scrollIntoView({ block: 'nearest' });
+  }
   function setFeedback (text, tone = '') { feedback.textContent = text; feedback.dataset.tone = tone; }
   function replay (el, cls) { if (reduceMotion) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
   function vibrate (pattern) { if (navigator.userActivation?.hasBeenActive === false) return; try { navigator.vibrate?.(pattern); } catch { /* unsupported */ } }
@@ -91,6 +102,9 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
     root.querySelector('#typer-progress').textContent = `${index + 1} / ${questions.length}`;
     root.querySelector('#typer-chapter').textContent = `Q${index + 1} · ${questions[index].chapter}`;
     root.querySelector('#typer-question').textContent = questions[index].q;
+    const img = questions[index].img;
+    root.querySelector('#typer-img').innerHTML = img ? `<img class="qimg" src="${img}" alt="문제 그림 (누르면 크게)">` : '';
+    renderModel();
     wordsLayer.setAttribute('aria-label', '떨어지는 보기: ' + choices.join(', '));
     bg.dataset.bg = String(index % BACKGROUNDS);
     replay(bg, 'enter');
@@ -158,7 +172,7 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
     for (const word of letters) {
       word.y += word.speed * seconds;
       if (word.y + word.h >= floorY()) {
-        if (word.text === questions[index].a) { resolve(false, '입력 못함 (정답 놓침)'); return; }
+        if (word.text === cur().a) { resolve(false, '입력 못함 (정답 놓침)'); return; }
         const other = letters.find(item => item !== word && item.col === word.col);
         word.y = Math.min(-word.h, other.y - word.h - GAP);
         word.speed = Math.min(other.speed, baseSpeed() * (0.8 + Math.random() * 0.35));
@@ -205,7 +219,7 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
     renderLives(lives);
     const typed = normalizeAnswer(answer);
     for (const word of letters) {
-      if (word.text === questions[index].a) word.el.classList.add('answer');
+      if (word.text === cur().a) word.el.classList.add('answer');
       else if (normalizeAnswer(word.text) === typed) { word.el.classList.add('wrong'); burst(word, '#DC2626'); }
     }
     popText(typed ? '오답' : '놓쳤어요', canvas.width / 2, canvas.height * 0.42, 'banner bad');
@@ -214,11 +228,14 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
   }
   function showReview (item, answer, missed) {
     const over = !lives || index + 1 === questions.length;
+    const essay = item.type === 'essay';
     review.innerHTML = `<div class="typer-review-card">
       <span class="typer-badge">${missed ? '놓쳤어요' : '오답'}</span>
+      ${item.img ? `<img class="qimg" src="${item.img}" alt="문제 그림 (누르면 크게)">` : ''}
       <h2 id="typer-review-title">${esc(item.q)}</h2>
       ${missed ? '' : `<p class="typer-mine"><small>내 답</small><s>${esc(answer)}</s></p>`}
-      <p class="typer-right"><small>정답</small><strong>${esc(item.a)}</strong></p>
+      <p class="typer-right"><small>${essay ? `빈칸 ${blank + 1} 정답` : '정답'}</small><strong>${esc(cur().a)}</strong></p>
+      ${essay ? `<p class="typer-model-full"><small>모범답안</small>${esc(item.a)}</p>` : ''}
       <p class="typer-explain">${esc(item.explain)}</p>
       <p class="typer-page">${esc(item.chapter)} · PDF ${item.page}쪽</p>
       <button class="primary wide" id="typer-continue">${over ? '결과 보기' : '계속'}</button>
@@ -226,26 +243,30 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
     review.hidden = false;
     replay(review, 'enter');
     const next = review.querySelector('#typer-continue');
-    next.addEventListener('click', () => { review.hidden = true; if (over) endGame(); else { index++; nextQuestion(); } });
+    next.addEventListener('click', () => { review.hidden = true; if (over) endGame(); else { index++; blank = 0; nextQuestion(); } });
     next.focus({ preventScroll: true });
   }
   function resolve (correct, answer) {
     if (phase !== 'playing' || closed) return;
     phase = 'feedback'; submit.disabled = true;
     clearTimeout(judgeTimer); composing = false;
-    const item = questions[index];
-    recordAnswer(item, answer, correct);
+    const item = questions[index], target = cur(), essay = item.type === 'essay';
     input.value = '';
     if (correct) {
-      const gained = type(letters.find(word => word.text === item.a));
-      setFeedback(`정답! +${gained}점`, 'good');
-      if (index + 1 === questions.length) { nextAt = Infinity; setTimeout(endGame, 900); return; }
-      nextAt = performance.now() + 850;
+      const gained = type(letters.find(word => word.text === target.a));
+      if (essay && blank + 1 < item.blanks.length) { setFeedback(`빈칸 ${blank + 1} 정답! +${gained}점`, 'good'); advanceBlank = true; nextAt = performance.now() + 700; return; }
+      recordAnswer(item, answer, true);
+      if (essay) { blank = item.blanks.length; renderModel(); } // show the completed model answer
+      setFeedback(essay ? `모범답안 완성! +${gained}점` : `정답! +${gained}점`, 'good');
+      const hold = essay ? 2200 : 850;
+      if (index + 1 === questions.length) { nextAt = Infinity; setTimeout(endGame, hold + 50); return; }
+      nextAt = performance.now() + hold;
       return;
     }
     const missed = answer === '입력 못함 (정답 놓침)';
+    recordAnswer(item, essay && !missed ? `빈칸 ${blank + 1}: ${answer}` : answer, false);
     miss(missed ? '' : answer);
-    setFeedback(missed ? `놓쳤어요 · 정답 ${item.a}` : `오답 · 정답 ${item.a}`, 'bad');
+    setFeedback(missed ? `놓쳤어요 · 정답 ${target.a}` : `오답 · 정답 ${target.a}`, 'bad');
     input.disabled = true;
     phase = 'review';
     setTimeout(() => { if (!closed) showReview(item, answer, missed); }, reduceMotion ? 0 : 650);
@@ -259,7 +280,7 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
     // Partial IME syllables and prefixes must not spend a life. Unknown words
     // are submitted only with Enter/button; exact choices may auto-submit.
     if (!explicit && matching.length !== 1) return;
-    resolve(normalized === normalizeAnswer(questions[index].a), answer);
+    resolve(normalized === normalizeAnswer(cur().a), answer);
   }
   function keyDownHandler (event) {
     if (event.key === 'Enter') {
@@ -277,7 +298,7 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
     if (phase === 'playing') { phase = 'paused'; input.disabled = true; submit.disabled = true; pauseButton.setAttribute('aria-label', '계속하기'); showPause(); } else if (phase === 'paused') { phase = 'playing'; previous = performance.now(); overlay.hidden = true; input.disabled = false; submit.disabled = false; pauseButton.setAttribute('aria-label', '일시정지'); input.focus({ preventScroll: true }); }
   }
   function nextQuestion () {
-    choices = makeChoices(questions[index]);
+    choices = makeChoices(cur());
     input.value = ''; composing = false; particles = [];
     setFeedback('정답을 입력하세요 · Enter로 제출');
     updateLabels(); createLetters(); phase = 'playing';
@@ -288,7 +309,7 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
     const seconds = previous ? Math.min((time - previous) / 1000, 0.1) : 0;
     previous = time;
     if (phase === 'playing') removeLetters(seconds);
-    else if (phase === 'feedback' && time >= nextAt) { index++; nextQuestion(); }
+    else if (phase === 'feedback' && time >= nextAt) { if (advanceBlank) { advanceBlank = false; blank++; } else { index++; blank = 0; } nextQuestion(); }
     for (const particle of particles) { particle.x += particle.dx * seconds; particle.y += particle.dy * seconds; particle.dy += 260 * seconds; particle.life -= seconds * 1.6; }
     particles = particles.filter(particle => particle.life > 0);
     paint();
@@ -317,7 +338,8 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
   if (window.visualViewport) { on(window.visualViewport, 'resize', resizeHandler); on(window.visualViewport, 'scroll', resizeHandler); }
   on(document, 'visibilitychange', () => { if (document.hidden && phase === 'playing') togglePause(); });
   on(pauseButton, 'click', togglePause);
+  on(root.querySelector('.typer-qcard'), 'click', event => { if (event.target.closest('.qimg') && phase === 'playing') togglePause(); });
   on(root.querySelector('#typer-end'), 'click', () => { if (confirm('Typer를 마치고 지금까지 푼 결과를 볼까요?')) endGame(); });
   on(root.querySelector('#typer-start'), 'click', () => { overlay.hidden = true; nextQuestion(); previous = performance.now(); animation = window.requestAnimationFrame(gameLoop); });
-  choices = makeChoices(questions[index]); updateLabels(); renderLives(); resizeHandler(); createLetters(); paint();
+  choices = makeChoices(cur()); updateLabels(); renderLives(); resizeHandler(); createLetters(); paint();
 }

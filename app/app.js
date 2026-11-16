@@ -7,6 +7,28 @@ const esc = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&
 const button = (id, text, cls='') => `<button id="${id}" class="${cls}">${text}</button>`;
 function read(key, fallback) { try {return JSON.parse(localStorage.getItem(key)) ?? fallback;} catch {state.errors.push('기기에 저장된 자료를 읽지 못했습니다. 원본 JSON을 다시 추가해 주세요.'); return fallback;} }
 function save(key, value) { try {localStorage.setItem(key, JSON.stringify(value)); return true;} catch {state.errors.push('기기 저장 공간에 저장하지 못했습니다. 이번 결과는 현재 화면에서만 볼 수 있습니다.'); return false;} }
+// Chapters/wrong answers live in IndexedDB: picture JSON easily exceeds the ~5MB localStorage limit.
+const db = new Promise((ok, no) => { try {const r = indexedDB.open('amgi', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);} catch(e) {no(e);} });
+db.catch(() => {});
+const idb = (mode, fn) => db.then(d => new Promise((ok, no) => { const t = d.transaction('kv', mode), req = fn(t.objectStore('kv')); t.oncomplete = () => ok(req.result); t.onerror = t.onabort = () => no(t.error); }));
+async function load(key, fallback) {
+  let v;
+  try {v = await idb('readonly', s => s.get(key));} catch {return read(key, fallback);}
+  if (v !== undefined) return v;
+  if (localStorage.getItem(key) === null) return fallback;
+  v = read(key, fallback); // move data saved by the older localStorage version
+  try {await idb('readwrite', s => s.put(v, key)); localStorage.removeItem(key);} catch { /* keep it in localStorage */ }
+  return v;
+}
+async function store(key, value) { try {await idb('readwrite', s => s.put(value, key)); return true;} catch {return save(key, value);} }
+const figure = (item, cls='qimg') => item.img ? `<img class="${cls}" src="${item.img}" alt="문제 그림${cls==='qimg'?' (누르면 크게)':''}">` : '';
+const answerHtml = item => item.type==='essay' ? `<p class="model">${esc(item.a)}</p>` : `<div class="answer">${esc(item.a)}</div>`;
+document.addEventListener('click', e => {
+  const img = e.target.closest?.('img.qimg'); if (!img) return;
+  const box = document.createElement('div'); box.className = 'lightbox'; box.setAttribute('role','dialog'); box.setAttribute('aria-label','그림 크게 보기');
+  box.innerHTML = `<img src="${img.src}" alt="문제 그림 크게"><button class="primary">닫기</button>`;
+  box.addEventListener('click', () => box.remove()); document.body.append(box); box.querySelector('button').focus();
+});
 function bind(id, fn) {document.getElementById(id)?.addEventListener('click', fn);}
 function view(html) {root.innerHTML = html; window.scrollTo(0,0);}
 function recordAnswer(item, myAnswer, correct) {
@@ -15,7 +37,7 @@ function recordAnswer(item, myAnswer, correct) {
   const key = questionKey(item);
   if (correct) delete state.storedWrong[key];
   else state.storedWrong[key] = record;
-  save(WRONG, state.storedWrong);
+  store(WRONG, state.storedWrong);
   return record;
 }
 function selection() {
@@ -37,7 +59,7 @@ async function importFiles(event) {
       const data = validateChapter(JSON.parse((await file.text()).replace(/^\uFEFF/,'')));
       if (state.chapters.some(c=>c.chapter===data.chapter)) throw Error('같은 이름의 챕터가 이미 있습니다. JSON의 chapter 이름을 구분해 주세요.');
       const next = [...local,data];
-      if (!save(CHAPTERS,next)) throw Error('저장 공간이 부족해 파일을 추가하지 못했습니다.');
+      if (!await store(CHAPTERS,next)) throw Error('저장 공간이 부족해 파일을 추가하지 못했습니다.');
       local=next; const key=`local:${data.chapter}`;
       state.chapters.push({...data,key,local:true});state.selected.add(key);messages.push(`${file.name}: ${data.items.length}문제 추가`);
     } catch(e) {messages.push(`${file.name}: ${e.message}`);}
@@ -49,21 +71,21 @@ function modeSelection() {
   bind('cards',()=>start('cards'));bind('match',()=>start('match'));bind('back',selection);
   root.querySelectorAll('[data-game]').forEach(el=>el.addEventListener('click',()=>start(el.dataset.game)));
 }
-function start(mode) {state.records=[];state.mode=mode;state.pool=shuffle(state.pool);if(mode==='cards') card(0); else if(mode==='match') matching([...state.pool]); else modes.get(mode)?.({questions:[...state.pool],recordAnswer,finish:results,makeChoices,root});}
+function start(mode) {state.records=[];state.mode=mode;state.pool=shuffle(state.pool);if(mode==='cards') card(0); else if(mode==='match') {state.pool=state.pool.filter(i=>i.type!=='essay');matching([...state.pool]);} else modes.get(mode)?.({questions:[...state.pool],recordAnswer,finish:results,makeChoices,root});}
 function progress(done,total) {return `<div class="progress"><span style="width:${Math.round(done/total*100)}%"></span></div>`;}
 function exit() {if (confirm('학습을 마칠까요? 지금까지 푼 문제는 결과에서 볼 수 있어요.')) results();}
 function card(index) {
   if(index>=state.pool.length) return results();
   const item=state.pool[index]; let flipped=false;
-  view(`<div class="between"><span class="eyebrow">카드 뒤집기 · ${index+1}/${state.pool.length}</span>${button('end','마치기','back')}</div>${progress(index,state.pool.length)}<p class="tag">${esc(item.chapter)}</p><h1>답을 떠올려 보세요</h1><button class="card" id="flip" aria-label="카드 뒤집기"><span class="tag">질문</span><h2>${esc(item.q)}</h2><span class="muted">눌러서 답 확인 ↻</span></button><div class="row">${button('unknown','모르겠다')}${button('known','알았다','primary')}</div><p class="muted">답을 본 뒤 기억하는 정도를 골라 주세요.</p>`);
+  view(`<div class="between"><span class="eyebrow">카드 뒤집기 · ${index+1}/${state.pool.length}</span>${button('end','마치기','back')}</div>${progress(index,state.pool.length)}<p class="tag">${esc(item.chapter)}</p><h1>답을 떠올려 보세요</h1>${figure(item)}<button class="card" id="flip" aria-label="카드 뒤집기"><span class="tag">질문</span><h2>${esc(item.q)}</h2><span class="muted">눌러서 답 확인 ↻</span></button><div class="row">${button('unknown','모르겠다')}${button('known','알았다','primary')}</div><p class="muted">답을 본 뒤 기억하는 정도를 골라 주세요.</p>`);
   document.getElementById('known').disabled=true;document.getElementById('unknown').disabled=true;
-  bind('flip',()=>{flipped=!flipped;document.getElementById('flip').innerHTML=flipped?`<span class="tag">정답 · PDF ${item.page}쪽</span><div class="answer">${esc(item.a)}</div><p>${esc(item.explain)}</p><span class="muted">눌러서 질문 보기 ↻</span>`:`<span class="tag">질문</span><h2>${esc(item.q)}</h2><span class="muted">눌러서 답 확인 ↻</span>`;document.getElementById('known').disabled=false;document.getElementById('unknown').disabled=false;});
+  bind('flip',()=>{flipped=!flipped;document.getElementById('flip').innerHTML=flipped?`<span class="tag">${item.type==='essay'?'모범답안':'정답'} · PDF ${item.page}쪽</span>${answerHtml(item)}<p>${esc(item.explain)}</p><span class="muted">눌러서 질문 보기 ↻</span>`:`<span class="tag">질문</span><h2>${esc(item.q)}</h2><span class="muted">눌러서 답 확인 ↻</span>`;document.getElementById('known').disabled=false;document.getElementById('unknown').disabled=false;});
   bind('known',()=>{recordAnswer(item,'알았다 (자기평가)',true);card(index+1);});bind('unknown',()=>{recordAnswer(item,'모르겠다 (자기평가)',false);card(index+1);});bind('end',exit);
 }
 function matching(pool) {
   if(!pool.length) return results();
   const {round,remaining}=takeMatchingRound(pool), answers=shuffle(round), done=new Set(), failures=new Map();let selected=null;
-  view(`<div class="between"><span class="eyebrow">짝 맞추기 · ${state.records.length}/${state.pool.length}</span>${button('end','마치기','back')}</div>${progress(state.records.length,state.pool.length)}<h1>질문과 답을 이어 주세요</h1><p class="muted">왼쪽 질문을 고르고 오른쪽 답을 눌러요.<br>이번 묶음 ${round.length}쌍 · 틀려도 다시 고를 수 있어요.</p><div class="pairs">${round.map((i,n)=>`<button data-q="${n}">${esc(i.q)}</button><button data-a="${n}" disabled>${esc(answers[n].a)}</button>`).join('')}</div><p id="feedback" class="status" role="status"></p>${button('next','다음 묶음','primary wide')}`);
+  view(`<div class="between"><span class="eyebrow">짝 맞추기 · ${state.records.length}/${state.pool.length}</span>${button('end','마치기','back')}</div>${progress(state.records.length,state.pool.length)}<h1>질문과 답을 이어 주세요</h1><p class="muted">왼쪽 질문을 고르고 오른쪽 답을 눌러요.<br>이번 묶음 ${round.length}쌍 · 틀려도 다시 고를 수 있어요.</p><div class="pairs">${round.map((i,n)=>`<button data-q="${n}">${figure(i,'qthumb')}${esc(i.q)}</button><button data-a="${n}" disabled>${esc(answers[n].a)}</button>`).join('')}</div><p id="feedback" class="status" role="status"></p>${button('next','다음 묶음','primary wide')}`);
   document.getElementById('next').hidden=true; bind('end',exit);
   root.querySelectorAll('[data-q]').forEach(el=>el.addEventListener('click',()=>{selected=Number(el.dataset.q);root.querySelectorAll('[data-q]').forEach(b=>{const active=b===el;b.classList.toggle('selected',active);b.setAttribute('aria-pressed',String(active));});root.querySelectorAll('[data-a]').forEach(b=>b.disabled=b.classList.contains('done'));}));
   root.querySelectorAll('[data-a]').forEach(el=>el.addEventListener('click',()=>{
@@ -91,18 +113,18 @@ function scoreboard(g) {
 }
 function results(game) {
   const wrong=state.records.filter(i=>!i.correct), correct=state.records.length-wrong.length, cards=state.mode==='cards';
-  view(`<div class="eyebrow">03 · 학습 결과</div><h1>한 번 더 보면<br>더 오래 남아요.</h1>${scoreboard(game)}<div class="stat">${correct} / ${state.records.length}</div><p class="muted">${cards?'알았다 (자기평가)':'처음에 맞힌 문제'} · ${state.pool.length}문제 중 ${state.records.length}문제 학습<br>${cards?'객관식 점수 대신 기억 정도를 기록했어요.':'첫 시도에서 틀린 답을 아래에 남겼어요.'}</p><h2>${cards?'모르겠다고 한':'틀린'} 문제 ${wrong.length}개</h2>${wrong.map(item=>`<article class="review"><p class="tag">${esc(item.chapter)} · PDF ${item.page}쪽</p><h3>${esc(item.q)}</h3><p class="incorrect">내 답: ${esc(item.myAnswer)}</p><p class="correct">정답: ${esc(item.a)}</p><p>${esc(item.explain)}</p>${item.source?`<details><summary>강의자료 근거 보기</summary><p>${esc(item.source)}</p></details>`:''}</article>`).join('')||'<p>이번 학습에서 남긴 오답이 없어요.</p>'}<p class="status">${esc(state.errors.join('\n'))}</p><div class="row">${button('retry','틀린 것만 다시','primary')}${button('home','챕터 고르기')}</div><p class="muted">이 기기에 쌓인 오답 ${Object.keys(state.storedWrong).length}개. 다시 풀어 맞히면 오답 목록에서 빠져요.</p>`);
+  view(`<div class="eyebrow">03 · 학습 결과</div><h1>한 번 더 보면<br>더 오래 남아요.</h1>${scoreboard(game)}<div class="stat">${correct} / ${state.records.length}</div><p class="muted">${cards?'알았다 (자기평가)':'처음에 맞힌 문제'} · ${state.pool.length}문제 중 ${state.records.length}문제 학습<br>${cards?'객관식 점수 대신 기억 정도를 기록했어요.':'첫 시도에서 틀린 답을 아래에 남겼어요.'}</p><h2>${cards?'모르겠다고 한':'틀린'} 문제 ${wrong.length}개</h2>${wrong.map(item=>`<article class="review"><p class="tag">${esc(item.chapter)} · PDF ${item.page}쪽</p>${figure(item)}<h3>${esc(item.q)}</h3><p class="incorrect">내 답: ${esc(item.myAnswer)}</p><p class="correct">${item.type==='essay'?'모범답안':'정답'}: ${esc(item.a)}</p><p>${esc(item.explain)}</p>${item.source?`<details><summary>강의자료 근거 보기</summary><p>${esc(item.source)}</p></details>`:''}</article>`).join('')||'<p>이번 학습에서 남긴 오답이 없어요.</p>'}<p class="status">${esc(state.errors.join('\n'))}</p><div class="row">${button('retry','틀린 것만 다시','primary')}${button('home','챕터 고르기')}</div><p class="muted">이 기기에 쌓인 오답 ${Object.keys(state.storedWrong).length}개. 다시 풀어 맞히면 오답 목록에서 빠져요.</p>`);
   bind('retry',retryWrong);document.getElementById('retry').disabled=!Object.keys(state.storedWrong).length;bind('home',selection);
 }
 async function init() {
-  const stored=read(WRONG,{});
+  const stored=await load(WRONG,{});
   if(stored && typeof stored==='object' && !Array.isArray(stored)) for(const record of Object.values(stored)) {try {const c=validateChapter({chapter:record.chapter,items:[record]});const item={...c.items[0],chapter:c.chapter,myAnswer:String(record.myAnswer||''),correct:false};state.storedWrong[questionKey(item)]=item;} catch {state.errors.push('형식이 잘못된 저장 오답 하나를 건너뛰었습니다.');}}
   try {
     const response=await fetch('../data/index.json');if(!response.ok) throw Error('목록 HTTP '+response.status);
     const index=await response.json();if(!Array.isArray(index.chapters)) throw Error('chapters 목록이 없습니다.');
     for(const entry of index.chapters) {try {const file=typeof entry==='string'?entry:entry.file;if(typeof file!=='string'||!/^[-\w가-힣.]+\.json$/.test(file)) throw Error('안전한 JSON 파일명만 허용합니다.');const r=await fetch('../data/'+file);if(!r.ok) throw Error('HTTP '+r.status);const data=validateChapter(await r.json());if(state.chapters.some(c=>c.chapter===data.chapter)) throw Error('챕터 이름 중복');state.chapters.push({...data,key:'public:'+file,local:false});} catch(e) {state.errors.push('기본 챕터: '+e.message);}}
   } catch(e) {state.errors.push('기본 목록을 불러오지 못했습니다. 로컬 서버로 열거나 JSON 파일을 추가해 주세요. '+e.message);}
-  const local=read(CHAPTERS,[]);
+  const local=await load(CHAPTERS,[]);
   if(Array.isArray(local)) for(const data of local){try {const c=validateChapter(data);if(state.chapters.some(x=>x.chapter===c.chapter)) throw Error('기본 챕터와 이름 중복');state.chapters.push({...c,key:'local:'+c.chapter,local:true});}catch(e){state.errors.push('추가 챕터: '+e.message);}}
   state.selected=new Set(state.chapters.map(c=>c.key)); selection();
   window.dispatchEvent(new Event('amgi-ready'));

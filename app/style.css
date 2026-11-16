@@ -74,6 +74,11 @@ details{margin-top:12px}
 summary{cursor:pointer;font-size:13px;color:var(--fg)}
 pre{white-space:pre-wrap;overflow-wrap:anywhere}
 button,.chapter{touch-action:manipulation}
+.qimg{display:block;max-width:100%;max-height:min(260px,36vh);margin:8px auto;border:1.5px solid var(--line);background:#fff;cursor:zoom-in;object-fit:contain}
+.qthumb{display:block;max-width:100%;max-height:70px;margin:0 auto 6px;object-fit:contain}
+.card .model{font-family:var(--serif);font-size:17px;line-height:1.6;color:var(--green);font-weight:700;margin:12px 0;text-align:left}
+.lightbox{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px;background:rgba(20,20,20,.9);cursor:zoom-out}
+.lightbox img{max-width:100%;max-height:calc(100% - 72px);object-fit:contain;background:#fff}
 @keyframes best-pulse{50%{transform:scale(1.12)}}
 @media(max-width:420px){header,main,footer{padding:18px 16px}.modes{gap:9px}.mode{padding:12px}.mode.hero{padding:18px}.row>*{min-width:110px}h1{font-size:27px}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
