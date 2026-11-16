@@ -31,7 +31,7 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
     <div class="typer-bg" aria-hidden="true"></div>
     <div class="typer-hud">
       <div class="typer-status"><span class="typer-lives" id="typer-lives" aria-label="하트 3개">${HEART.repeat(3)}</span><span class="typer-progress" id="typer-progress"></span></div>
-      <div class="typer-score" aria-live="off"><small>SCORE</small><strong id="typer-score">0</strong><span class="typer-combo" id="typer-combo"></span></div>
+      <div class="typer-score" aria-live="off"><small>점수</small><strong id="typer-score">0</strong><span class="typer-combo" id="typer-combo"></span></div>
       <div class="typer-actions"><button id="typer-pause" class="typer-icon" aria-label="일시정지"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button><button id="typer-end" class="typer-icon" aria-label="마치기"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
     </div>
     <div class="typer-qcard"><small id="typer-chapter"></small><h1 id="typer-question"></h1></div>
@@ -76,7 +76,7 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
   let letters = [];
   let particles = [];
   let laneWidth = 100;
-  const center = { x: 0, y: 0, radius: 6, color: '#F87171' };
+  const center = { x: 0, y: 0, radius: 6, color: '#141414' };
   const listeners = [];
   function on (target, event, handler) { target.addEventListener(event, handler); listeners.push(() => target.removeEventListener(event, handler)); }
   function setFeedback (text, tone = '') { feedback.textContent = text; feedback.dataset.tone = tone; }
@@ -148,11 +148,8 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
   function paintCircle (x, y, radius, color) { ctx.beginPath(); ctx.arc(x, y, radius, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); }
   function paint () {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const danger = ctx.createLinearGradient(0, center.y - 40, 0, center.y);
-    danger.addColorStop(0, 'rgba(248,113,113,0)'); danger.addColorStop(1, 'rgba(248,113,113,.22)');
-    ctx.fillStyle = danger; ctx.fillRect(0, center.y - 40, canvas.width, 40);
-    ctx.strokeStyle = '#F87171'; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
-    ctx.beginPath(); ctx.moveTo(0, center.y); ctx.lineTo(canvas.width, center.y); ctx.stroke(); ctx.setLineDash([]);
+    ctx.strokeStyle = '#141414'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(0, center.y); ctx.lineTo(canvas.width, center.y); ctx.stroke();
     paintCircle(center.x, center.y, center.radius, center.color);
     for (const particle of particles) paintCircle(particle.x, particle.y, Math.max(0.5, particle.life * 4), particle.color);
   }
@@ -190,10 +187,10 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
     score += gained;
     scoreEl.textContent = score.toLocaleString('ko-KR');
     replay(scoreEl, 'bump');
-    comboEl.textContent = combo > 1 ? `${combo} COMBO` : '';
+    comboEl.textContent = combo > 1 ? `${combo}연속` : '';
     if (word) {
       word.el.classList.add('hit');
-      const at = burst(word, '#4ADE80');
+      const at = burst(word, '#15803D');
       popText(`+${gained}`, at.x, at.y - word.h, 'good');
       if (combo > 1) popText(`${combo} 연속!`, at.x, at.y + word.h, 'combo');
     }
@@ -209,7 +206,7 @@ export function mountTyper ({ questions, recordAnswer, finish, makeChoices, root
     const typed = normalizeAnswer(answer);
     for (const word of letters) {
       if (word.text === questions[index].a) word.el.classList.add('answer');
-      else if (normalizeAnswer(word.text) === typed) { word.el.classList.add('wrong'); burst(word, '#F87171'); }
+      else if (normalizeAnswer(word.text) === typed) { word.el.classList.add('wrong'); burst(word, '#DC2626'); }
     }
     popText(typed ? '오답' : '놓쳤어요', canvas.width / 2, canvas.height * 0.42, 'banner bad');
     replay(shell, 'shake');

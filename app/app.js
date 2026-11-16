@@ -87,7 +87,7 @@ function typerBest() {return Number(read('amgi.typer.best.v1',0))||0;}
 function scoreboard(g) {
   if(!g||typeof g.score!=='number') return '';
   const n=v=>Number(v||0).toLocaleString('ko-KR');
-  return `<section class="scoreboard" aria-label="${esc(g.game)} 점수"><small>${esc(g.game)} SCORE</small><span class="big">${n(g.score)}</span>${g.newBest?'<span class="newbest">최고 기록!</span>':''}<dl><div><dt>최고 점수</dt><dd>${n(g.best)}</dd></div><div><dt>최대 콤보</dt><dd>${n(g.maxCombo)}</dd></div><div><dt>누적 점수</dt><dd>${n(g.total)}</dd></div></dl></section>`;
+  return `<section class="scoreboard" aria-label="${esc(g.game)} 점수"><small>${esc(g.game)} 점수</small><span class="big">${n(g.score)}</span>${g.newBest?'<span class="newbest">최고 기록!</span>':''}<dl><div><dt>최고 점수</dt><dd>${n(g.best)}</dd></div><div><dt>최대 콤보</dt><dd>${n(g.maxCombo)}</dd></div><div><dt>누적 점수</dt><dd>${n(g.total)}</dd></div></dl></section>`;
 }
 function results(game) {
   const wrong=state.records.filter(i=>!i.correct), correct=state.records.length-wrong.length, cards=state.mode==='cards';
