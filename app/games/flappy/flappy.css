@@ -1,0 +1,34 @@
+/* Adapted 2026-11-16 from nebez/floppybird/css/main.css (Apache-2.0).
+   Public build: original artwork removed; CSS shapes only. See NOTICE.md. */
+@keyframes amgiBlink { 50%{opacity:.3} }
+body.flappy-active {overflow:hidden}
+body.flappy-active>header,body.flappy-active>footer {display:none}
+body.flappy-active main {padding:0;min-height:0}
+.flappy {position:fixed;inset:0;z-index:10;background:#f6f7f2;display:grid;grid-template-rows:auto minmax(180px,1fr) auto;overflow:hidden}
+.flappy-top,.flappy-bottom {width:100%;max-width:1000px;margin:auto;padding:10px 16px}
+.flappy-toolbar {display:flex;justify-content:space-between;align-items:center;gap:7px;font-size:13px}
+.flappy-toolbar button{font-size:12px;padding:4px 10px;min-height:34px}
+.flappy-lives{color:#a63b34;white-space:nowrap;font-weight:700}
+.flappy-top h1{font-size:17px;line-height:1.45;letter-spacing:0;margin:8px 0 0;max-height:90px;overflow:auto}
+.flappy-top small{font-size:11px;color:#607069}
+.flappy-field{position:relative;overflow:hidden;min-height:180px;margin:0 10px;border:1px solid #8cbcb3;border-radius:10px;background:#cce8e2;touch-action:none;user-select:none;outline-offset:-4px}
+.flappy-land{position:absolute;bottom:0;width:100%;height:24px;background:#d2dab8;z-index:6}
+.flappy-bird{position:absolute;left:60px;top:180px;width:34px;height:24px;background:none;z-index:5;will-change:transform,top}
+.flappy-bird:before{content:'';position:absolute;left:5px;top:0;width:24px;height:24px;border-radius:50%;background:#22664e}.flappy-bird.invincible{animation:amgiBlink 200ms infinite}
+.flappy-pipe{position:absolute;top:0;left:0;width:52px;height:100%;z-index:3;will-change:transform}
+.flappy-segment{position:absolute;width:52px;background:#759b69;border-left:1px solid #527346;border-right:1px solid #527346}
+.flappy-segment:before,.flappy-segment:after{content:"";position:absolute;left:0;width:52px;height:26px}
+.flappy-segment:before{top:0;background:#759b69}
+.flappy-segment:after{bottom:0;background:#759b69}
+.flappy-gap{position:absolute;left:-145px;width:197px;display:flex;align-items:center;justify-content:center;padding:0 5px;pointer-events:none}
+.flappy-gap span{font-size:13px;font-weight:700;line-height:1.3;max-width:195px;padding:6px 8px;background:#fffee9eb;color:#233b35;border-radius:8px;border:1px solid #376b56;overflow-wrap:anywhere;text-align:center;box-shadow:0 2px 5px #233b3512}
+.flappy-overlay{position:absolute;inset:0;z-index:8;background:#eff7eeed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;text-align:center}
+.flappy-overlay[hidden]{display:none}
+.flappy-overlay p{font-size:14px;margin:0;max-width:420px}
+.flappy-hint{position:absolute;top:7px;left:7px;z-index:7;color:#233b35;background:#fffde9ed;padding:5px 9px;border-radius:7px;font-size:12px;pointer-events:none}
+.flappy-bottom{padding:6px 14px 8px}
+.flappy-feedback{font-size:12px;margin:0;min-height:20px}
+.flappy-credit{font-size:10px;margin:3px 0 0;color:#607069}
+.flappy-credit a{color:inherit}
+.flappy[data-phase="paused"] .flappy-field,.flappy[data-phase="paused"] .flappy-bird,.flappy[data-phase="paused"] .flappy-land{animation-play-state:paused}
+@media(max-height:550px){.flappy-top{padding:5px 12px}.flappy-top h1{font-size:15px;max-height:66px;margin:3px 0}.flappy-top small{display:none}.flappy-bottom{padding:3px 12px}.flappy-credit{font-size:9px}}
