@@ -1,93 +1,93 @@
-/* Adapted 2026-11-16 from berkerol/typer, GPL-3.0. Arcade restyle for the lecture quiz. */
+/* Adapted 2026-11-16 from berkerol/typer, GPL-3.0. Purple modern restyle (2026-11-17) for the lecture quiz. */
 body.typer-active { overflow:hidden; }
 body.typer-active > header, body.typer-active > footer { display:none; }
 body.typer-active main { padding:0; min-height:0; }
 .typer { position:fixed; left:0; top:0; width:100%; height:100dvh; z-index:10; display:grid; grid-template-rows:auto auto minmax(90px,1fr) auto; color:var(--fg); overflow:hidden; isolation:isolate; background:var(--bg); }
 .typer > * { width:100%; max-width:760px; margin-inline:auto; }
 
-/* Per-question background: 6 gradient + pattern themes, no image files. */
+/* Per-question background: 6 purple-family gradient themes, no image files. */
 .typer-bg { position:absolute; inset:0; max-width:none; z-index:-1; background:var(--bg); }
 .typer-bg.enter { animation:typer-bg-in .6s ease-out; }
-.typer-bg[data-bg="0"] { background:radial-gradient(circle at 20% 10%,#1E3A8A 0,transparent 55%),radial-gradient(#ffffff14 1px,transparent 1.5px) 0 0/22px 22px,linear-gradient(180deg,#0B1226,#111C3D); }
-.typer-bg[data-bg="1"] { background:radial-gradient(circle at 85% 15%,#6D28D9 0,transparent 50%),repeating-linear-gradient(45deg,#ffffff08 0 2px,transparent 2px 18px),linear-gradient(180deg,#140C2B,#24124A); }
-.typer-bg[data-bg="2"] { background:radial-gradient(circle at 50% 0,#0E7490 0,transparent 60%),linear-gradient(#ffffff0d 1px,transparent 1px) 0 0/100% 28px,linear-gradient(180deg,#06202A,#0B3440); }
-.typer-bg[data-bg="3"] { background:radial-gradient(circle at 15% 90%,#9D174D 0,transparent 55%),radial-gradient(circle,#ffffff12 2px,transparent 2.5px) 0 0/34px 34px,linear-gradient(180deg,#1F0B1C,#36112D); }
-.typer-bg[data-bg="4"] { background:radial-gradient(circle at 80% 85%,#047857 0,transparent 55%),linear-gradient(90deg,#ffffff0a 1px,transparent 1px) 0 0/26px 26px,linear-gradient(#ffffff0a 1px,transparent 1px) 0 0/26px 26px,linear-gradient(180deg,#05201A,#0A3328); }
-.typer-bg[data-bg="5"] { background:radial-gradient(circle at 50% 100%,#B45309 0,transparent 55%),repeating-linear-gradient(-30deg,#ffffff09 0 1px,transparent 1px 14px),linear-gradient(180deg,#1C1206,#33200B); }
+.typer-bg[data-bg="0"] { background:radial-gradient(90% 55% at 15% 0,#7C3AEDcc 0,transparent 60%),radial-gradient(70% 45% at 100% 100%,#4338CA99 0,transparent 60%),linear-gradient(180deg,#170C38,#0F0828); }
+.typer-bg[data-bg="1"] { background:radial-gradient(80% 50% at 90% 5%,#C026D3aa 0,transparent 60%),radial-gradient(70% 50% at 0 100%,#6D28D9aa 0,transparent 60%),linear-gradient(180deg,#1C0B33,#120724); }
+.typer-bg[data-bg="2"] { background:radial-gradient(90% 55% at 50% -5%,#6366F1bb 0,transparent 60%),radial-gradient(#ffffff0f 1px,transparent 1.5px) 0 0/24px 24px,linear-gradient(180deg,#14103A,#0C0A26); }
+.typer-bg[data-bg="3"] { background:radial-gradient(80% 55% at 10% 95%,#DB2777aa 0,transparent 60%),radial-gradient(70% 45% at 95% 10%,#8B5CF6aa 0,transparent 60%),linear-gradient(180deg,#1E0B2E,#130720); }
+.typer-bg[data-bg="4"] { background:radial-gradient(85% 55% at 85% 90%,#7C3AEDbb 0,transparent 60%),linear-gradient(#ffffff08 1px,transparent 1px) 0 0/100% 30px,linear-gradient(180deg,#120B30,#0B0722); }
+.typer-bg[data-bg="5"] { background:conic-gradient(from 200deg at 50% 0,#A855F766,#6366F155,#EC489955,#A855F766),linear-gradient(180deg,#1A0D36,#0E0824); }
 
 /* HUD */
 .typer-hud { display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:8px; padding:10px 12px 6px; }
 .typer-status { display:flex; flex-direction:column; gap:2px; }
 .typer-lives { display:flex; gap:3px; }
 .typer-lives i { display:block; width:24px; height:24px; }
-.typer-lives svg { width:100%; height:100%; fill:#F43F5E; stroke:#FFE4E6; stroke-width:1.2; filter:drop-shadow(0 0 6px #F43F5E99); }
-.typer-lives i.lost svg { fill:none; stroke:#64748B; filter:none; }
+.typer-lives svg { width:100%; height:100%; fill:#F472B6; stroke:none; filter:drop-shadow(0 0 6px #F472B699); }
+.typer-lives i.lost svg { fill:#ffffff26; stroke:none; filter:none; }
 .typer-lives i.break { animation:typer-heart-break .7s ease-out; }
-.typer-progress { font-size:12px; font-weight:700; color:var(--muted-fg); letter-spacing:1px; font-variant-numeric:tabular-nums; }
+.typer-progress { font-size:12px; font-weight:600; color:var(--muted-fg); letter-spacing:.5px; font-variant-numeric:tabular-nums; }
 .typer-score { text-align:center; line-height:1.05; min-width:110px; }
-.typer-score small { display:block; font-size:10px; font-weight:800; letter-spacing:3px; color:var(--gold); opacity:.85; }
-.typer-score strong { display:inline-block; font-size:28px; font-weight:900; color:var(--gold); font-variant-numeric:tabular-nums; text-shadow:0 0 12px #FACC1566; }
+.typer-score small { display:block; font-size:10px; font-weight:700; letter-spacing:3px; color:var(--violet-2); }
+.typer-score strong { display:inline-block; font-size:30px; font-weight:800; letter-spacing:-.5px; color:#fff; font-variant-numeric:tabular-nums; text-shadow:0 0 18px #A78BFAaa; }
 .typer-score strong.bump { animation:typer-bump .35s ease-out; }
-.typer-combo { display:block; min-height:15px; font-size:11px; font-weight:900; color:#F0ABFC; letter-spacing:1px; }
+.typer-combo { display:block; min-height:15px; font-size:11px; font-weight:800; color:#F0ABFC; letter-spacing:.5px; }
 .typer-actions { display:flex; justify-content:flex-end; gap:6px; }
-.typer-icon { width:44px; height:44px; min-height:44px; padding:0; display:grid; place-items:center; border-radius:12px; background:#ffffff14; border:1px solid #ffffff26; }
+.typer-icon { width:44px; height:44px; min-height:44px; padding:0; display:grid; place-items:center; border-radius:14px; background:#ffffff14; border:1px solid #ffffff22; }
 .typer-icon svg { width:20px; height:20px; fill:var(--fg); stroke:var(--fg); stroke-width:2.4; stroke-linecap:round; }
 
 /* Question card: largest, highest-contrast element on screen. */
 .typer-qcard { padding:0 12px 8px; }
-.typer-qcard small { display:block; font-size:12px; font-weight:800; color:#93C5FD; margin:0 2px 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.typer-qcard h1 { margin:0; padding:14px 16px; background:#F8FAFC; color:#0F172A; border-radius:16px; font-size:20px; line-height:1.4; letter-spacing:-.3px; font-weight:800; max-height:7.6em; overflow:auto; box-shadow:0 6px 0 #0F172A55,0 0 0 3px #ffffff22; overflow-wrap:anywhere; }
+.typer-qcard small { display:block; font-size:12px; font-weight:700; color:var(--lilac); opacity:.85; margin:0 4px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.typer-qcard h1 { margin:0; padding:16px 18px; background:#FBFAFF; color:#1E1B3A; border-radius:20px; font-size:20px; line-height:1.45; letter-spacing:-.4px; font-weight:700; max-height:7.6em; overflow:auto; box-shadow:0 16px 36px -14px #000c,inset 0 3px 0 #8B5CF6; overflow-wrap:anywhere; }
 
 /* Field and falling words */
 .typer-field { position:relative; min-height:0; overflow:hidden; }
 .typer canvas { position:absolute; inset:0; display:block; width:100%; height:100%; }
 .typer-words { position:absolute; inset:0; --lane:160px; -webkit-mask-image:linear-gradient(transparent,#000 28px); mask-image:linear-gradient(transparent,#000 28px); }
-.typer-word { position:absolute; left:0; top:0; max-width:var(--lane); padding:8px 12px; border-radius:12px; background:#F1F5F9; color:#0F172A; border:2px solid #CBD5E1; box-shadow:0 4px 0 #0F172A66; font-size:17px; font-weight:800; line-height:1.3; overflow-wrap:anywhere; word-break:keep-all; will-change:transform; transition:background .15s,color .15s,border-color .15s; }
-.typer-word.hit { background:#22C55E; color:#052E16; border-color:#BBF7D0; box-shadow:0 0 0 4px #22C55E55,0 0 24px #22C55E; z-index:2; }
-.typer-word.wrong { background:#DC2626; color:#fff; border-color:#FECACA; }
+.typer-word { position:absolute; left:0; top:0; max-width:var(--lane); padding:8px 14px; border-radius:14px; background:#FBFAFF; color:#2E1065; border:1.5px solid #C4B5FD; box-shadow:0 8px 20px -8px #000c,0 0 0 4px #8B5CF61f; font-size:17px; font-weight:700; line-height:1.3; overflow-wrap:anywhere; word-break:keep-all; will-change:transform; transition:background .15s,color .15s,border-color .15s; }
+.typer-word.hit { background:#22C55E; color:#052E16; border-color:#BBF7D0; box-shadow:0 0 0 5px #22C55E55,0 0 28px #22C55E; z-index:2; }
+.typer-word.wrong { background:#EF4444; color:#fff; border-color:#FECACA; box-shadow:0 0 0 5px #EF444455; }
 .typer-word.answer { background:#22C55E; color:#052E16; border-color:#fff; box-shadow:0 0 0 4px #22C55E66; }
 .typer-word.hit, .typer-word.wrong { animation:typer-word-pop .45s ease-out; }
 .typer-pop { position:absolute; transform:translate(-50%,-50%); font-size:26px; font-weight:900; pointer-events:none; animation:typer-float 1.1s ease-out forwards; white-space:nowrap; z-index:3; }
-.typer-pop.good { color:#4ADE80; text-shadow:0 2px 0 #052E16,0 0 14px #22C55E; }
-.typer-pop.banner { font-size:52px; letter-spacing:2px; animation:typer-banner 1s ease-out forwards; z-index:4; }
-.typer-pop.banner.good { color:#4ADE80; text-shadow:0 4px 0 #052E16,0 0 30px #22C55E; }
-.typer-pop.banner.bad { color:#FCA5A5; text-shadow:0 4px 0 #450A0A,0 0 30px #DC2626; }
-.typer-pop.combo { font-size:18px; color:#F0ABFC; text-shadow:0 2px 0 #3B0764; }
+.typer-pop.good { color:#4ADE80; text-shadow:0 2px 12px #052E16,0 0 16px #22C55E; }
+.typer-pop.banner { font-size:50px; font-weight:800; letter-spacing:-1px; animation:typer-banner 1s ease-out forwards; z-index:4; }
+.typer-pop.banner.good { color:#4ADE80; text-shadow:0 6px 24px #052E16,0 0 36px #22C55E; }
+.typer-pop.banner.bad { color:#FCA5A5; text-shadow:0 6px 24px #450A0A,0 0 36px #EF4444; }
+.typer-pop.combo { font-size:18px; color:#F0ABFC; text-shadow:0 2px 12px #3B0764; }
 
 /* Start / pause overlay */
-.typer-overlay { position:absolute; inset:8px 12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:18px; text-align:center; background:#0F172AE6; border:1px solid #ffffff22; border-radius:18px; z-index:4; }
+.typer-overlay { position:absolute; inset:8px 12px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:18px; text-align:center; background:#1A0F3Acc; -webkit-backdrop-filter:blur(16px); backdrop-filter:blur(16px); border:1px solid #C4B5FD33; border-radius:24px; z-index:4; }
 .typer-overlay[hidden] { display:none; }
-.typer-logo { font-size:34px; font-weight:900; letter-spacing:8px; color:var(--gold); text-shadow:3px 3px 0 #B45309; }
+.typer-logo { font-size:34px; font-weight:800; letter-spacing:4px; background:linear-gradient(90deg,#fff,#DDD6FE,#F0ABFC); -webkit-background-clip:text; background-clip:text; color:transparent; }
 .typer-overlay strong { font-size:18px; }
 .typer-overlay p { font-size:14px; margin:0; max-width:420px; color:var(--muted-fg); }
 
 /* Bottom input */
-.typer-bottom { padding:6px 12px 8px; background:linear-gradient(180deg,transparent,#0F172ACC 30%); }
+.typer-bottom { padding:6px 12px 8px; background:linear-gradient(180deg,transparent,#0E0824e6 35%); }
 .typer-feedback { font-size:13px; font-weight:700; min-height:20px; margin:0 0 4px; color:var(--muted-fg); text-align:center; }
 .typer-feedback[data-tone="good"] { color:#4ADE80; }
 .typer-feedback[data-tone="bad"] { color:#FCA5A5; }
 .typer-form { display:flex; gap:7px; margin:0; }
-.typer-form input { font:700 17px var(--font); min-width:0; width:100%; border:2px solid #60A5FA; border-radius:12px; padding:10px 12px; color:#0F172A; background:#F8FAFC; }
-.typer-form input:focus { outline:3px solid #FACC15; outline-offset:1px; }
+.typer-form input { font:600 17px var(--font); min-width:0; width:100%; border:1.5px solid #A78BFA; border-radius:14px; padding:11px 14px; color:#1E1B3A; background:#FBFAFF; box-shadow:0 0 0 4px #8B5CF62e; }
+.typer-form input:focus { outline:3px solid #DDD6FE; outline-offset:1px; }
 .typer-form input:disabled { opacity:.6; }
 .typer-form button { min-height:46px; padding:8px 16px; white-space:nowrap; }
-.typer-credit { font-size:10px; margin:4px 0 0; color:#94A3B8; text-align:center; }
+.typer-credit { font-size:10px; margin:4px 0 0; color:#9D93C4; text-align:center; }
 .typer-credit a { color:inherit; }
 
 /* Wrong-answer review card */
-.typer-review { position:absolute; inset:0; max-width:none; z-index:6; display:grid; place-items:center; padding:16px; background:#020617B3; }
+.typer-review { position:absolute; inset:0; max-width:none; z-index:6; display:grid; place-items:center; padding:16px; background:#0E0824b3; -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); }
 .typer-review[hidden] { display:none; }
-.typer-review.enter .typer-review-card { animation:typer-card-in .3s ease-out; }
+.typer-review.enter .typer-review-card { width:100%; max-width:440px; max-height:100%; overflow:auto; background:#FBFAFF; color:#1E1B3A; border-radius:24px; padding:20px 20px 18px; border-top:6px solid #EF4444; box-shadow:0 30px 60px -20px #000d; }
 .typer-review-card { width:100%; max-width:440px; max-height:100%; overflow:auto; background:#F8FAFC; color:#0F172A; border-radius:20px; padding:18px 18px 16px; border-top:8px solid #DC2626; box-shadow:0 18px 40px #0008; }
-.typer-badge { display:inline-block; background:#DC2626; color:#fff; font-size:13px; font-weight:900; padding:3px 10px; border-radius:999px; }
+.typer-badge { display:inline-block; background:#FEE2E2; color:#B91C1C; font-size:13px; font-weight:800; padding:3px 12px; border-radius:999px; }
 .typer-review-card h2 { font-size:18px; line-height:1.45; margin:10px 0 12px; overflow-wrap:anywhere; }
 .typer-review-card p { margin:0 0 10px; }
-.typer-review-card small { display:block; font-size:12px; font-weight:800; color:#64748B; }
+.typer-review-card small { display:block; font-size:12px; font-weight:700; color:#6B6491; }
 .typer-mine s { font-size:17px; color:#B91C1C; font-weight:700; text-decoration-thickness:2px; }
-.typer-right { background:#DCFCE7; border-radius:12px; padding:8px 12px; }
+.typer-right { background:#DCFCE7; border-radius:14px; padding:10px 14px; }
 .typer-right strong { font-size:26px; font-weight:900; color:#15803D; }
-.typer-explain { font-size:15px; line-height:1.55; color:#1E293B; }
-.typer-page { font-size:12px; color:#64748B; }
+.typer-explain { font-size:15px; line-height:1.6; color:#3B3363; background:#F3F0FF; border-radius:14px; padding:10px 14px; }
+.typer-page { font-size:12px; color:#6B6491; }
 .typer-review-card .primary { margin-top:4px; }
 
 /* Screen-wide effects */
